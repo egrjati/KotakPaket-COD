@@ -1,19 +1,33 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Footer from "@/layout/footer";
+
 function BoxIcon() {
   return (
     <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Box body */}
       <rect x="5" y="20" width="38" height="23" rx="3" fill="#F5A623" />
-      {/* Box lid */}
       <rect x="3" y="11" width="42" height="11" rx="3" fill="#E8941A" />
-      {/* Green stripe on lid center */}
       <rect x="17" y="11" width="14" height="11" fill="#22C55E" />
-      {/* Green stripe continuation on body top */}
       <rect x="17" y="20" width="14" height="6" fill="#16A34A" />
     </svg>
   );
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [resi, setResi] = useState("");
+  const [error, setError] = useState(false);
+
+  function handleSubmit() {
+    if (!resi.trim()) {
+      setError(true);
+      return;
+    }
+    router.push("/user/valid-resi");
+  }
+
   return (
     <div className="min-h-screen bg-white flex justify-center">
       <div className="w-full max-w-[390px] min-h-screen bg-[#29C5F6] flex flex-col items-center px-6 pt-14 pb-8">
@@ -35,18 +49,28 @@ export default function Home() {
           <input
             type="text"
             placeholder="Contoh : JX123456"
-            className="w-full bg-gray-100 rounded-xl px-4 py-4 text-gray-400 text-sm border border-gray-200 outline-none mb-5 focus:border-sky-300 focus:bg-white transition-colors"
+            value={resi}
+            onChange={(e) => {
+              setResi(e.target.value);
+              if (error) setError(false);
+            }}
+            className={`w-full bg-gray-100 rounded-xl px-4 py-4 text-gray-700 text-sm border outline-none mb-1 transition-colors
+              ${error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-sky-300 focus:bg-white"}`}
           />
-          <button className="w-full bg-[#F5C542] text-gray-800 font-bold py-4 rounded-xl tracking-[0.18em] text-sm hover:bg-[#e8b830] transition-colors">
+          {error && (
+            <p className="text-red-500 text-xs mb-4">Nomor resi tidak boleh kosong.</p>
+          )}
+          {!error && <div className="mb-4" />}
+          <button
+            onClick={handleSubmit}
+            className="w-full bg-[#F5C542] text-gray-800 font-bold py-4 rounded-xl tracking-[0.18em] text-sm hover:bg-[#e8b830] transition-colors"
+          >
             MASUKKAN PAKET
           </button>
         </div>
 
-        {/* Push footer to bottom */}
         <div className="flex-1" />
-
-        {/* Footer */}
-        <p className="text-white text-xs opacity-90">© 2026 Smart COD Box System.</p>
+        <Footer />
       </div>
     </div>
   );

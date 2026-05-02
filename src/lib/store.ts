@@ -1,49 +1,72 @@
 import type { Resi, ResiInput, StatusPesanan } from "@/types/resi";
 
-const KEY = "kotakpaket_resi";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-function read(): Resi[] {
-  if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(KEY);
-  return raw ? (JSON.parse(raw) as Resi[]) : [];
+const headers = {
+  "Content-Type": "application/json",
+  Accept: "application/json",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toResi(raw: any): Resi {
+  return {
+    id: String(raw.id),
+    nomorResi: raw.nomor_resi,
+    hargaCOD: raw.harga_cod,
+    kotak: raw.kotak,
+    status: raw.status === "menunggu" ? "pending" : (raw.status as StatusPesanan),
+    image: raw.image ? `${BASE}/storage/${raw.image}` : null,
+    createdAt: raw.created_at,
+  };
 }
 
-function write(data: Resi[]) {
-  localStorage.setItem(KEY, JSON.stringify(data));
+export async function getAllResi(): Promise<Resi[]> {
+  const res = await fetch(`${BASE}/api/pesanan`, { headers });
+  const data = await res.json();
+  return data.map(toResi);
 }
 
-export function getAllResi(): Resi[] {
-  return read();
-}
-
-export function findResi(nomor: string): Resi | undefined {
-  return read().find(
-    (r) => r.nomorResi.toLowerCase() === nomor.trim().toLowerCase()
+export async function findResi(nomor: string): Promise<Resi | null> {
+  const all = await getAllResi();
+  return (
+    all.find(
+      (r) => r.nomorResi.toLowerCase() === nomor.trim().toLowerCase()
+    ) ?? null
   );
 }
 
-export function addResi(input: ResiInput): Resi {
-  const all = read();
-  const baru: Resi = {
-    ...input,
-    id: crypto.randomUUID(),
-    status: "pending",
-    image: null,
-    createdAt: new Date().toISOString(),
-  };
-  write([baru, ...all]);
-  return baru;
-}
-
-export function updateStatus(id: string, status: StatusPesanan) {
-  const all = read();
-  const idx = all.findIndex((r) => r.id === id);
-  if (idx >= 0) {
-    all[idx].status = status;
-    write(all);
+export async function addResi(input: ResiInput): Promise<Resi> {
+  const res = await fetch(`${BASE}/api/pesanan`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      nomor_resi: input.nomorResi,
+      harga_cod: input.hargaCOD,
+      kotak: input.kotak,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw err;
   }
+  return toResi(await res.json());
 }
 
-export function deleteResi(id: string) {
-  write(read().filter((r) => r.id !== id));
+export async function updateStatus(
+  id: string,
+  status: StatusPesanan
+): Promise<void> {
+  const apiStatus = status === "pending" ? "menunggu" : status;
+  await fetch(`${BASE}/api/pesanan/${id}/status`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ status: apiStatus }),
+  });
+}
+
+export async function deleteResi(id: string): Promise<void> {
+  await fetch(`${BASE}/api/pesanan/${id}`, {
+    method: "DELETE",
+    headers,
+  });
 }

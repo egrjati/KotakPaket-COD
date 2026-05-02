@@ -33,12 +33,12 @@ function UserPageInner() {
   const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
-    setResi(findResi(nomor) ?? null);
+    findResi(nomor).then((data) => setResi(data ?? null));
   }, [nomor]);
 
-  function handleAmbilUang() {
+  async function handleAmbilUang() {
     if (!resi) return;
-    updateStatus(resi.id, "diambil");
+    await updateStatus(resi.id, "diambil");
     setShowUang(true);
   }
 

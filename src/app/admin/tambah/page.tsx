@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addResi, findResi } from "@/lib/store";
+import { addResi } from "@/lib/store";
 import type { KotakUang } from "@/types/resi";
 
 export default function TambahResiPage() {
@@ -17,26 +17,33 @@ export default function TambahResiPage() {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!nomorResi.trim()) e.nomorResi = "Nomor resi wajib diisi";
-    else if (findResi(nomorResi)) e.nomorResi = "Nomor resi sudah terdaftar";
-
     const harga = Number(hargaCOD);
     if (!hargaCOD.trim()) e.hargaCOD = "Harga COD wajib diisi";
     else if (isNaN(harga) || harga <= 0) e.hargaCOD = "Harga COD tidak valid";
-
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(ev: React.FormEvent) {
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    addResi({
-      nomorResi: nomorResi.trim().toUpperCase(),
-      hargaCOD: Number(hargaCOD),
-      kotak,
-    });
-    router.push("/admin");
+    try {
+      await addResi({
+        nomorResi: nomorResi.trim().toUpperCase(),
+        hargaCOD: Number(hargaCOD),
+        kotak,
+      });
+      router.push("/admin");
+    } catch (err: unknown) {
+      const apiErr = err as { errors?: Record<string, string[]> };
+      if (apiErr?.errors?.nomor_resi) {
+        setErrors({ nomorResi: "Nomor resi sudah terdaftar" });
+      } else {
+        setErrors({ nomorResi: "Terjadi kesalahan, coba lagi" });
+      }
+      setSubmitting(false);
+    }
   }
 
   return (

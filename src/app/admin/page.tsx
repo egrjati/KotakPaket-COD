@@ -23,23 +23,28 @@ export default function AdminDashboard() {
   const [loaded, setLoaded] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  useEffect(() => {
-    setList(getAllResi());
-    setLoaded(true);
-  }, []);
-
-  function refresh() {
-    setList(getAllResi());
+  async function refresh() {
+    const data = await getAllResi();
+    setList(data);
   }
 
-  function handleDelete(id: string) {
+  useEffect(() => {
+    getAllResi()
+      .then((data) => {
+        setList(data);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  async function handleDelete(id: string) {
     if (!confirm("Hapus resi ini?")) return;
-    deleteResi(id);
+    await deleteResi(id);
     refresh();
   }
 
-  function handleStatusChange(id: string, status: StatusPesanan) {
-    updateStatus(id, status);
+  async function handleStatusChange(id: string, status: StatusPesanan) {
+    await updateStatus(id, status);
     refresh();
   }
 
@@ -196,7 +201,6 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
 
 function formatDate(iso: string): string {
   const d = new Date(iso);

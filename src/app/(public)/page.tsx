@@ -20,26 +20,34 @@ export default function Home() {
   const router = useRouter();
   const [resi, setResi] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!resi.trim()) {
       setError("Nomor resi tidak boleh kosong.");
       return;
     }
-    const found = findResi(resi);
-    if (!found) {
-      setError("Nomor resi tidak ditemukan.");
-      return;
+    setLoading(true);
+    try {
+      const found = await findResi(resi);
+      if (!found) {
+        setError("Nomor resi tidak ditemukan.");
+        return;
+      }
+      if (found.status === "diambil") {
+        setError("Resi ini sudah pernah digunakan.");
+        return;
+      }
+      if (found.status === "expired") {
+        setError("Resi ini sudah kadaluarsa.");
+        return;
+      }
+      router.push(`/user?resi=${encodeURIComponent(found.nomorResi)}`);
+    } catch {
+      setError("Gagal menghubungi server, coba lagi.");
+    } finally {
+      setLoading(false);
     }
-    if (found.status === "diambil") {
-      setError("Resi ini sudah pernah digunakan.");
-      return;
-    }
-    if (found.status === "expired") {
-      setError("Resi ini sudah kadaluarsa.");
-      return;
-    }
-    router.push(`/user?resi=${encodeURIComponent(found.nomorResi)}`);
   }
 
   return (
@@ -68,6 +76,7 @@ export default function Home() {
               setResi(e.target.value);
               if (error) setError("");
             }}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             className={`w-full bg-gray-100 rounded-xl px-4 py-4 text-gray-700 text-sm border outline-none mb-1 transition-colors
               ${error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-sky-300 focus:bg-white"}`}
           />
@@ -77,9 +86,10 @@ export default function Home() {
           {!error && <div className="mb-4" />}
           <button
             onClick={handleSubmit}
-            className="w-full bg-[#F5C542] text-gray-800 font-bold py-4 rounded-xl tracking-[0.18em] text-sm hover:bg-[#e8b830] transition-colors"
+            disabled={loading}
+            className="w-full bg-[#F5C542] text-gray-800 font-bold py-4 rounded-xl tracking-[0.18em] text-sm hover:bg-[#e8b830] transition-colors disabled:opacity-60"
           >
-            MASUKKAN PAKET
+            {loading ? "MENCARI..." : "MASUKKAN PAKET"}
           </button>
         </div>
 

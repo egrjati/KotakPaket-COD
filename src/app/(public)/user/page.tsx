@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/layout/footer";
+import { findResi, updateStatus } from "@/lib/store";
+import type { Resi } from "@/types/resi";
 
 function BoxIcon() {
   return (
@@ -21,10 +23,58 @@ function BoxIcon() {
   );
 }
 
-export default function UserPage() {
+function UserPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nomor = searchParams.get("resi") ?? "";
+
+  const [resi, setResi] = useState<Resi | null | undefined>(undefined);
   const [showUang, setShowUang] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+
+  useEffect(() => {
+    setResi(findResi(nomor) ?? null);
+  }, [nomor]);
+
+  function handleAmbilUang() {
+    if (!resi) return;
+    updateStatus(resi.id, "diambil");
+    setShowUang(true);
+  }
+
+  if (resi === undefined) {
+    return (
+      <div className="min-h-screen bg-[#29C5F6] flex items-center justify-center">
+        <p className="text-white text-sm">Memuat...</p>
+      </div>
+    );
+  }
+
+  if (resi === null) {
+    return (
+      <div className="min-h-screen bg-white flex justify-center">
+        <div className="w-full max-w-[390px] min-h-screen bg-[#29C5F6] flex flex-col items-center px-6 pt-14 pb-8">
+          <div className="w-[84px] h-[84px] bg-white rounded-[22px] flex items-center justify-center shadow-md mb-8">
+            <BoxIcon />
+          </div>
+          <div className="w-full bg-white rounded-2xl p-6 text-center">
+            <p className="font-bold text-red-500 mb-2">Resi tidak ditemukan</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Nomor resi yang anda masukkan tidak valid.
+            </p>
+            <button
+              onClick={() => router.push("/")}
+              className="bg-[#29C5F6] text-white font-semibold px-5 py-2 rounded-lg text-sm"
+            >
+              Kembali
+            </button>
+          </div>
+          <div className="flex-1" />
+          <Footer />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex justify-center">
@@ -80,7 +130,7 @@ export default function UserPage() {
               </div>
             )}
             <p className="text-base font-medium text-gray-500">
-              RESI : JX123456RD
+              RESI : {resi.nomorResi}
             </p>
           </div>
 
@@ -93,7 +143,6 @@ export default function UserPage() {
                 silahkan ambil uang
               </p>
 
-              {/* icon & name*/}
               <div className="flex gap-3 items-center mt-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -109,16 +158,16 @@ export default function UserPage() {
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="9" y1="21" x2="9" y2="9" />
                 </svg>
-                <p className="text-lg font-semibold text-white">LACI B</p>
+                <p className="text-lg font-semibold text-white">LACI {resi.kotak}</p>
               </div>
             </div>
 
-            {/* Button */}
             <button
-              onClick={() => setShowUang(true)}
-              className="bg-green-400 text-white font-semibold px-3 py-1 rounded-lg border border-slate-600 hover:bg-green-700 hover:border-amber-50 shadow-2xs transition-colors"
+              onClick={handleAmbilUang}
+              disabled={showUang}
+              className="bg-green-400 text-white font-semibold px-3 py-1 rounded-lg border border-slate-600 hover:bg-green-700 hover:border-amber-50 shadow-2xs transition-colors disabled:opacity-60"
             >
-              Ambil Uang
+              {showUang ? "Diambil" : "Ambil Uang"}
             </button>
           </div>
 
@@ -144,21 +193,29 @@ export default function UserPage() {
                   </svg>
                   <span className="text-gray-600 font-medium">Nominal</span>
                 </div>
-                <span className="text-xl font-bold text-green-500">Rp 150.000</span>
+                <span className="text-xl font-bold text-green-500">
+                  Rp {resi.hargaCOD.toLocaleString("id-ID")}
+                </span>
               </div>
               <hr className="my-2" />
-              <p className="text-xs text-gray-400 text-center">Silahkan ambil uang dari laci B</p>
+              <p className="text-xs text-gray-400 text-center">
+                Silahkan ambil uang dari laci {resi.kotak}
+              </p>
             </div>
           )}
-
-
-
-          {/* End */}
         </div>
 
         <div className="flex-1" />
         <Footer />
       </div>
     </div>
+  );
+}
+
+export default function UserPage() {
+  return (
+    <Suspense fallback={null}>
+      <UserPageInner />
+    </Suspense>
   );
 }

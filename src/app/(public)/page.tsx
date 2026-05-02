@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Footer from "@/layout/footer";
+import { findResi } from "@/lib/store";
 
 function BoxIcon() {
   return (
@@ -18,14 +19,27 @@ function BoxIcon() {
 export default function Home() {
   const router = useRouter();
   const [resi, setResi] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
 
   function handleSubmit() {
     if (!resi.trim()) {
-      setError(true);
+      setError("Nomor resi tidak boleh kosong.");
       return;
     }
-    router.push("/user");
+    const found = findResi(resi);
+    if (!found) {
+      setError("Nomor resi tidak ditemukan.");
+      return;
+    }
+    if (found.status === "diambil") {
+      setError("Resi ini sudah pernah digunakan.");
+      return;
+    }
+    if (found.status === "expired") {
+      setError("Resi ini sudah kadaluarsa.");
+      return;
+    }
+    router.push(`/user?resi=${encodeURIComponent(found.nomorResi)}`);
   }
 
   return (
@@ -52,13 +66,13 @@ export default function Home() {
             value={resi}
             onChange={(e) => {
               setResi(e.target.value);
-              if (error) setError(false);
+              if (error) setError("");
             }}
             className={`w-full bg-gray-100 rounded-xl px-4 py-4 text-gray-700 text-sm border outline-none mb-1 transition-colors
               ${error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-sky-300 focus:bg-white"}`}
           />
           {error && (
-            <p className="text-red-500 text-xs mb-4">Nomor resi tidak boleh kosong.</p>
+            <p className="text-red-500 text-xs mb-4">{error}</p>
           )}
           {!error && <div className="mb-4" />}
           <button

@@ -25,7 +25,7 @@ export default function Home() {
       setError(true);
       return;
     }
-    router.push("/user/valid-resi");
+    router.push("/user");
   }
 
   return (
